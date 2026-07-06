@@ -1841,8 +1841,36 @@ window.submitQuestion = async function(){
 };
 
 
-async function likeQuestion(questionId){
+window.likeQuestion = async function(questionId){
 
+    const likeKey = "liked_" + questionId;
+
+    if(localStorage.getItem(likeKey)){
+        alert("You already liked");
+        return;
+    }
+
+    await updateDoc(doc(db,"questions",questionId),{
+        likes: increment(1)
+    });
+
+    localStorage.setItem(likeKey,"true");
+}
+window.dislikeQuestion = async function(questionId){
+
+    const dislikeKey = "disliked_" + questionId;
+
+    if(localStorage.getItem(dislikeKey)){
+        alert("You already disliked");
+        return;
+    }
+
+    await updateDoc(doc(db,"questions",questionId),{
+        dislikes: increment(1)
+    });
+
+    localStorage.setItem(dislikeKey,"true");
+}
     const likeKey = "liked_" + questionId;
 
     if(localStorage.getItem(likeKey)){
