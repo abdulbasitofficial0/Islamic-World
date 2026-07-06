@@ -1841,21 +1841,31 @@ window.submitQuestion = async function(){
 };
 
 
-// 👍 LIKE
-window.likeQuestion = async function(id){
-    await updateDoc(doc(db,"questions",id),{
-        likes: increment(1)
-    });
-};
+async function likeQuestion(questionId){
 
+    const likeKey = "liked_" + questionId;
 
-// 👎 DISLIKE
-window.dislikeQuestion = async function(id){
-    await updateDoc(doc(db,"questions",id),{
-        dislikes: increment(1)
-    });
-};
+    if(localStorage.getItem(likeKey)){
 
+        // Unlike
+        localStorage.removeItem(likeKey);
+
+        // Firebase mein likes -1 karo
+
+        alert("Like removed");
+
+    } else {
+
+        // Like
+        localStorage.setItem(likeKey,"true");
+
+        // Firebase mein likes +1 karo
+
+        alert("Liked");
+
+    }
+
+}
 
 // ✍️ ANSWER (ADMIN ONLY)
 window.submitAnswer = async function(id, answerText){
