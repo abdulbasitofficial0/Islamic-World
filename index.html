@@ -1646,8 +1646,6 @@
 
     </div>
 
-    <input type="text" id="name" placeholder="Your Name">
-
     <input type="email" id="email" placeholder="Your Email">
 
     <textarea id="reviewText" placeholder="Write your review here..."></textarea>
@@ -1658,26 +1656,34 @@
 
     <div id="reviewContainer"></div>
 
-<script>
+<script type="module">
 
-let selectedRating = 0;
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
-function rate(stars){
-
-    selectedRating = stars;
-
-    document.querySelectorAll(".star").forEach((star,index)=>{
-
-        if(index < stars){
-            star.classList.add("active");
-        }else{
-            star.classList.remove("active");
-        }
-
-    });
+import {
+getFirestore,
+collection,
+addDoc,
+onSnapshot,
+query,
+orderBy
 }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-function submitReview(){
+const firebaseConfig = {
+  apiKey: "AIzaSyAZp_pKTsbNOamZ3vwSvf39G0KvYNJwziA",
+  authDomain: "islamicworld-82530.firebaseapp.com",
+  projectId: "islamicworld-82530",
+  storageBucket: "islamicworld-82530.firebasestorage.app",
+  messagingSenderId: "354418597940",
+  appId: "1:354418597940:web:d496a526ded6b889302a61",
+  measurementId: "G-DZX8TEJHTT"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.submitReview = async function(){
 
     let name = document.getElementById("name").value;
     let email = document.getElementById("email").value;
@@ -1688,88 +1694,220 @@ function submitReview(){
         return;
     }
 
-    let box = document.createElement("div");
+    await addDoc(collection(db,"reviews"),{
+        name:name || "Anonymous",
+        email:email || "",
+        review:review,
+        createdAt:Date.now()
+    });
 
-    box.className = "review-box";
+    document.getElementById("name").value="";
+    document.getElementById("email").value="";
+    document.getElementById("reviewText").value="";
+};
 
-    box.innerHTML = `
-        <h4>${name || "Anonymous"}</h4>
-        <small>${email}</small>
-        <p>⭐ ${selectedRating}/5</p>
-        <p>${review}</p>
-    `;
+const q = query(
+    collection(db,"reviews"),
+    orderBy("createdAt","desc")
+);
 
-    document.getElementById("reviewContainer")
-    .prepend(box);
+onSnapshot(q,(snapshot)=>{
 
-    document.getElementById("name").value = "";
-    document.getElementById("email").value = "";
-    document.getElementById("reviewText").value = "";
+    let container =
+    document.getElementById("reviewContainer");
 
-    selectedRating = 0;
+    container.innerHTML="";
 
-    document.querySelectorAll(".star")
-    .forEach(star=>star.classList.remove("active"));
-}
+    snapshot.forEach((doc)=>{
+
+        let data = doc.data();
+
+        container.innerHTML += `
+        <div class="review-box">
+            <h4>${data.name}</h4>
+            <small>${data.email}</small>
+            <p>${data.review}</p>
+        </div>
+        `;
+    });
+
+});
 
 </script>
-
 
 </section>
 
-<section id="questions">
+<input type="text" id="name" placeholder="Name (optional)">
+<br><br>
 
-    <h1>Questions & Answers</h1>
-    <h2>سوال و جواب</h2>
+<textarea id="questionText" placeholder="Write your question"></textarea>
+<br><br>
 
-    <p>
-        Ask your Islamic question below.
-    </p>
+<button onclick="submitQuestion()">Submit</button>
 
-    <input type="text"
-           id="questionInput"
-           placeholder="Write your question here...">
+<hr>
 
-    <button onclick="addQuestion()">
-        Ask Question
-    </button>
+<div id="questionContainer"></div>
+   
+<script type="module">
 
-    <div id="questionContainer"></div>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+getFirestore,
+collection,
+addDoc,
+onSnapshot,
+query,
+orderBy,
+doc,
+updateDoc,
+deleteDoc,
+increment
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-<script>
+import {
+getAuth,
+signInWithEmailAndPassword,
+onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-function addQuestion(){
+const firebaseConfig = {
+  apiKey: "AIzaSyAZp_pKTsbNOamZ3vwSvf39G0KvYNJwziA",
+  authDomain: "islamicworld-82530.firebaseapp.com",
+  projectId: "islamicworld-82530",
+  storageBucket: "islamicworld-82530.firebasestorage.app",
+  messagingSenderId: "354418597940",
+  appId: "1:354418597940:web:d496a526ded6b889302a61",
+  measurementId: "G-DZX8TEJHTT"
+};
 
-    let question =
-    document.getElementById("questionInput").value;
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// 🔐 ONLY ADMIN EMAIL
+const ADMIN_EMAIL = "asifabdulbasit7@gmail.com";
+
+let isAdmin = false;
+
+// 🔑 check admin login
+onAuthStateChanged(auth, (user)=>{
+    isAdmin = user && user.email === ADMIN_EMAIL;
+});
+
+
+// ➕ SUBMIT QUESTION
+window.submitQuestion = async function(){
+
+    let name = document.getElementById("name").value;
+    let question = document.getElementById("questionText").value;
 
     if(question.trim() === ""){
-        alert("Please write a question");
+        alert("Write a question");
         return;
     }
 
-    let box = document.createElement("div");
+    await addDoc(collection(db,"questions"),{
+        name: name || "Anonymous",
+        question: question,
+        answer: "",
+        likes: 0,
+        dislikes: 0,
+        createdAt: Date.now()
+    });
 
-    box.className = "question-box";
+    document.getElementById("name").value = "";
+    document.getElementById("questionText").value = "";
+};
 
-    box.innerHTML = `
-        <h4>❓ Question</h4>
-        <p>${question}</p>
 
-        <div class="answer">
-            <b>Answer:</b>
-            <p>Waiting for admin reply...</p>
+// 👍 LIKE
+window.likeQuestion = async function(id){
+    await updateDoc(doc(db,"questions",id),{
+        likes: increment(1)
+    });
+};
+
+
+// 👎 DISLIKE
+window.dislikeQuestion = async function(id){
+    await updateDoc(doc(db,"questions",id),{
+        dislikes: increment(1)
+    });
+};
+
+
+// ✍️ ANSWER (ADMIN ONLY)
+window.submitAnswer = async function(id, answerText){
+
+    if(!isAdmin){
+        alert("Only admin can answer");
+        return;
+    }
+
+    await updateDoc(doc(db,"questions",id),{
+        answer: answerText
+    });
+};
+
+
+// 🗑️ DELETE (ADMIN ONLY)
+window.deleteQuestion = async function(id){
+
+    if(!isAdmin){
+        alert("Only admin can delete");
+        return;
+    }
+
+    await deleteDoc(doc(db,"questions",id));
+};
+
+
+// 📥 SHOW REALTIME
+const q = query(collection(db,"questions"), orderBy("createdAt","desc"));
+
+onSnapshot(q,(snapshot)=>{
+
+    let container = document.getElementById("questionContainer");
+    container.innerHTML = "";
+
+    snapshot.forEach((docSnap)=>{
+
+        let d = docSnap.data();
+
+        container.innerHTML += `
+        <div style="border:1px solid #ccc;padding:10px;margin:10px 0">
+
+            <b>${d.name}</b>
+
+            <p><b>Q:</b> ${d.question}</p>
+
+            <p><b>A:</b> ${d.answer || "⏳ Waiting..."}</p>
+
+            <p>👍 ${d.likes || 0} | 👎 ${d.dislikes || 0}</p>
+
+            <button onclick="likeQuestion('${docSnap.id}')">Like</button>
+            <button onclick="dislikeQuestion('${docSnap.id}')">Dislike</button>
+
+            <br><br>
+
+            <input id="ans-${docSnap.id}" placeholder="Answer">
+
+            <button onclick="submitAnswer('${docSnap.id}', document.getElementById('ans-${docSnap.id}').value)">
+                Answer
+            </button>
+
+            <button onclick="deleteQuestion('${docSnap.id}')">
+                Delete
+            </button>
+
         </div>
-    `;
+        `;
+    });
 
-    document.getElementById("questionContainer")
-    .prepend(box);
-
-    document.getElementById("questionInput").value = "";
-}
+});
 
 </script>
-
 
 </section>
 
