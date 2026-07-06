@@ -1736,6 +1736,7 @@ onSnapshot(q,(snapshot)=>{
 </script>
 
 </section>
+<section>
 
 <input type="text" id="name" placeholder="Name (optional)">
 <br><br>
@@ -1747,8 +1748,10 @@ onSnapshot(q,(snapshot)=>{
 
 <hr>
 
+<button onclick="adminLogin()">Admin Login</button>
+
 <div id="questionContainer"></div>
-   
+
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -1771,6 +1774,7 @@ signInWithEmailAndPassword,
 onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+// 🔥 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyAZp_pKTsbNOamZ3vwSvf39G0KvYNJwziA",
   authDomain: "islamicworld-82530.firebaseapp.com",
@@ -1785,15 +1789,31 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// 🔐 ONLY ADMIN EMAIL
+// 🔐 ADMIN EMAIL
 const ADMIN_EMAIL = "asifabdulbasit7@gmail.com";
 
 let isAdmin = false;
 
-// 🔑 check admin login
+
+// 🔑 CHECK LOGIN STATE
 onAuthStateChanged(auth, (user)=>{
     isAdmin = user && user.email === ADMIN_EMAIL;
 });
+
+
+// 🔐 ADMIN LOGIN
+window.adminLogin = async function(){
+
+    let email = prompt("Enter admin email:");
+    let pass = prompt("Enter password:");
+
+    try{
+        await signInWithEmailAndPassword(auth, email, pass);
+        alert("Admin logged in");
+    } catch(e){
+        alert("Login failed");
+    }
+};
 
 
 // ➕ SUBMIT QUESTION
@@ -1845,6 +1865,11 @@ window.submitAnswer = async function(id, answerText){
         return;
     }
 
+    if(answerText.trim() === ""){
+        alert("Answer cannot be empty");
+        return;
+    }
+
     await updateDoc(doc(db,"questions",id),{
         answer: answerText
     });
@@ -1863,7 +1888,7 @@ window.deleteQuestion = async function(id){
 };
 
 
-// 📥 SHOW REALTIME
+// 📥 REALTIME DISPLAY
 const q = query(collection(db,"questions"), orderBy("createdAt","desc"));
 
 onSnapshot(q,(snapshot)=>{
@@ -1882,7 +1907,7 @@ onSnapshot(q,(snapshot)=>{
 
             <p><b>Q:</b> ${d.question}</p>
 
-            <p><b>A:</b> ${d.answer || "⏳ Waiting..."}</p>
+            <p><b>A:</b> ${d.answer || "⏳ Waiting for admin reply..."}</p>
 
             <p>👍 ${d.likes || 0} | 👎 ${d.dislikes || 0}</p>
 
@@ -1891,7 +1916,7 @@ onSnapshot(q,(snapshot)=>{
 
             <br><br>
 
-            <input id="ans-${docSnap.id}" placeholder="Answer">
+            <input id="ans-${docSnap.id}" placeholder="Write answer">
 
             <button onclick="submitAnswer('${docSnap.id}', document.getElementById('ans-${docSnap.id}').value)">
                 Answer
